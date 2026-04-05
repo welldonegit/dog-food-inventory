@@ -3,7 +3,7 @@ const Database = require('better-sqlite3');
 const path = require('path');
 
 const app = express();
-const db = new Database(path.join(__dirname, 'feedstock.db'));
+const db = new Database(path.join(__dirname, 'data', 'feedstock.db'));
 
 // ── SCHEMA ────────────────────────────────────────────────────────────────────
 db.exec(`

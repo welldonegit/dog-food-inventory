@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Склад корму — Собівартість</title>
+  <style>
+    :root {
+      --bg: #f1f5f9; --surface: #ffffff; --border: #e2e8f0;
+      --accent: #2563eb; --accent-bg: #eff6ff;
+      --green: #16a34a; --green-bg: #f0fdf4;
+      --orange: #ea580c; --orange-bg: #fff7ed;
+      --muted: #64748b; --text: #0f172a;
+      --r: 10px; --sh: 0 1px 3px rgba(0,0,0,.08);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); font-size: 13.5px; padding: 20px 16px 60px; }
+    .page-header { margin-bottom: 20px; }
+    .page-header h1 { font-size: 20px; font-weight: 700; }
+    .page-header p { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); box-shadow: var(--sh); margin-bottom: 18px; overflow: hidden; }
+    .card-head { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--border); background: #fafbfc; }
+    .card-head h2 { font-size: 14px; font-weight: 600; }
+    .ml-auto { margin-left: auto; }
+    .badge { padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .badge-blue   { background: var(--accent-bg); color: var(--accent); }
+    .badge-green  { background: var(--green-bg);  color: var(--green);  }
+    .badge-gray   { background: #f1f5f9; color: var(--muted); border: 1px solid var(--border); }
+    .badge-yellow { background: var(--orange-bg); color: var(--orange); }
+    table { width: 100%; border-collapse: collapse; }
+    th { padding: 8px 12px; background: #f8fafc; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    td { padding: 7px 12px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: #fafbfc; }
+    tfoot td { background: #f8fafc; font-weight: 600; border-top: 2px solid var(--border); border-bottom: none; }
+    .cat-row td { background: #f8fafc; padding: 5px 12px 4px; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); border-bottom: 1px solid var(--border); }
+    input[type="number"], input[type="text"] { width: 100%; padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; color: var(--text); background: #f8fafc; -moz-appearance: textfield; transition: border-color .15s, background .15s, box-shadow .15s; }
+    input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; }
+    input:focus { outline: none; border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px rgba(37,99,235,.1); }
+    input.ghost { background: transparent; border-color: transparent; }
+    input.ghost:hover { border-color: var(--border); }
+    input.ghost:focus { background: #fff; border-color: var(--accent); }
+    select { padding: 5px 6px; border: 1px solid var(--border); border-radius: 6px; font-size: 12px; background: #f8fafc; color: var(--text); cursor: pointer; }
+    select:focus { outline: none; border-color: var(--accent); }
+    .oh-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; padding: 14px 16px 6px; }
+    @media (max-width: 800px) { .oh-grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 520px) { .oh-grid { grid-template-columns: 1fr; } }
+    .oh-block { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+    .oh-block-title { padding: 6px 12px; background: #f8fafc; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); border-bottom: 1px solid var(--border); }
+    .oh-block.size1   .oh-block-title { border-left: 3px solid var(--accent); }
+    .oh-block.size300 .oh-block-title { border-left: 3px solid var(--orange); }
+    .oh-block.logistics .oh-block-title { border-left: 3px solid var(--green); }
+    .oh-row { display: flex; align-items: center; gap: 8px; padding: 5px 10px; border-bottom: 1px solid #f1f5f9; }
+    .oh-row:last-child { border-bottom: none; }
+    .oh-row label { flex: 1; font-size: 12px; color: var(--muted); }
+    .oh-row input { width: 110px; flex-shrink: 0; }
+    .info-bar { display: flex; flex-wrap: wrap; gap: 16px; margin: 0 16px 14px; padding: 10px 14px; border-radius: 8px; }
+    .info-bar.orange { background: var(--orange-bg); border: 1px solid #fed7aa; color: #9a3412; }
+    .ib-item label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; display: block; margin-bottom: 2px; opacity: .65; }
+    .ib-item .val { font-size: 14px; font-weight: 700; }
+    .btn-row { display: flex; gap: 10px; padding: 12px 16px 14px; flex-wrap: wrap; }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: opacity .15s, transform .1s; }
+    .btn:hover { opacity: .85; }
+    .btn:active { transform: scale(.98); }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-success { background: var(--green); color: #fff; }
+    .btn-ghost { background: #fff; border: 1px solid var(--border); color: var(--muted); }
+    .btn-danger { background: #fff; border: 1px solid #fca5a5; color: #dc2626; }
+    .sum-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; padding: 14px 16px; }
+    .sum-card { background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; }
+    .sum-card label { font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); display: block; margin-bottom: 3px; }
+    .sum-card .val { font-size: 17px; font-weight: 700; }
+    .sum-card.green { background: var(--green-bg); border-color: #bbf7d0; }
+    .sum-card.green .val { color: var(--green); }
+    .sum-card.blue  { background: var(--accent-bg); border-color: #bfdbfe; }
+    .sum-card.blue  .val { color: var(--accent); }
+    .res-new { color: var(--green); font-weight: 600; }
+    .res-avg { color: var(--accent); font-weight: 700; }
+    .res-dim { color: var(--muted); }
+    .journal-entry { border: 1px solid var(--border); border-radius: 8px; margin: 0 14px 12px; overflow: hidden; }
+    .journal-entry-head { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #f8fafc; cursor: pointer; user-select: none; }
+    .journal-entry-head:hover { background: #f1f5f9; }
+    .journal-entry-head .date { font-weight: 600; font-size: 13px; }
+    .journal-entry-head .summary { color: var(--muted); font-size: 12px; }
+    .journal-entry-body { padding: 10px 14px; display: none; border-top: 1px solid var(--border); }
+    .journal-entry-body.open { display: block; }
+    .journal-mini-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .journal-mini-table th { padding: 5px 8px; background: #f8fafc; font-size: 10.5px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--border); }
+    .journal-mini-table td { padding: 5px 8px; border-bottom: 1px solid #f1f5f9; }
+    .journal-mini-table tr:last-child td { border-bottom: none; }
+    .journal-oh { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; padding: 8px 12px; background: #f8fafc; border-radius: 7px; font-size: 12px; }
+    .journal-oh span { color: var(--muted); }
+    .journal-oh strong { color: var(--text); }
+    .journal-empty { padding: 20px 16px; text-align: center; color: var(--muted); font-size: 13px; }
+    .hidden { display: none; }
+    hr.div { border: none; border-top: 1px solid var(--border); }
+    #sync-indicator { font-size: 11px; color: var(--muted); margin-left: 10px; }
+    #sync-indicator.saving { color: var(--orange); }
+    #sync-indicator.saved  { color: var(--green); }
+    #sync-indicator.error  { color: #dc2626; }
+  </style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>📦 Склад корму — Собівартість</h1>
+  <p>Інформація станом на <span id="today"></span> <span id="sync-indicator"></span></p>
+</div>
+
+<!-- STOCK -->
+<div class="card">
+  <div class="card-head">
+    <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
+    <h2>Поточний склад</h2>
+    <span id="stock-badge" class="badge badge-blue ml-auto"></span>
+    <button class="btn btn-ghost" onclick="addItem()" style="padding:4px 10px;font-size:12px;margin-left:8px">+ Позиція</button>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:24px">#</th><th>Назва позиції</th><th style="width:70px">Фас.</th>
+        <th style="width:90px;text-align:right">К-сть, шт</th>
+        <th style="width:140px;text-align:right">Сер. собів., ₴/кг</th>
+        <th style="width:110px;text-align:right">Сума, ₴</th>
+        <th style="width:36px"></th>
+      </tr>
+    </thead>
+    <tbody id="stock-body"></tbody>
+    <tfoot>
+      <tr>
+        <td colspan="3" style="padding-left:12px">Разом</td>
+        <td id="ft-qty" style="text-align:right"></td><td></td>
+        <td id="ft-sum" style="text-align:right;color:var(--accent)"></td><td></td>
+      </tr>
+    </tfoot>
+  </table>
+</div>
+
+<!-- DELIVERY -->
+<div class="card">
+  <div class="card-head">
+    <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+    <h2>Нова поставка</h2>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:24px">#</th><th>Позиція</th><th style="width:70px">Фас.</th>
+        <th style="width:90px;text-align:right">К-сть, шт</th>
+        <th style="width:140px;text-align:right">Закуп. ціна, ₴/кг</th>
+        <th style="width:110px;text-align:right">Сума закупки, ₴</th>
+      </tr>
+    </thead>
+    <tbody id="delivery-body"></tbody>
+    <tfoot>
+      <tr>
+        <td colspan="3" style="padding-left:12px">Разом у поставці</td>
+        <td id="d-ft-qty" style="text-align:right;color:var(--muted)">—</td><td></td>
+        <td id="d-ft-sum" style="text-align:right;color:var(--accent)">—</td>
+      </tr>
+    </tfoot>
+  </table>
+  <hr class="div"/>
+  <div style="padding:12px 16px 4px">
+    <strong style="font-size:13px">Накладні витрати</strong>
+    <span style="color:var(--muted);font-size:12px;margin-left:6px">Пакети та наліпки — окремо по фасовці; логістика — пропорційно до ваги (кг)</span>
+  </div>
+  <div class="oh-grid">
+    <div class="oh-block size1">
+      <div class="oh-block-title">📦 Пачки 1 кг</div>
+      <div class="oh-row"><label>Вартість пакетів, ₴</label><input type="number" id="oh-bags1" placeholder="0" min="0" oninput="recalc()"/></div>
+      <div class="oh-row"><label>Доставка пакетів, ₴</label><input type="number" id="oh-bags-del1" placeholder="0" min="0" oninput="recalc()"/></div>
+      <div class="oh-row"><label>Вартість наліпок, ₴</label><input type="number" id="oh-stk1" placeholder="0" min="0" oninput="recalc()"/></div>
+      <div class="oh-row"><label>Доставка наліпок, ₴</label><input type="number" id="oh-stk-del1" placeholder="0" min="0" oninput="recalc()"/></div>
+    </div>
+    <div class="oh-block size300">
+      <div class="oh-block-title">📦 Пачки 300 г</div>
+      <div class="oh-row"><label>Вартість пакетів, ₴</label><input type="number" id="oh-bags300" placeholder="0" min="0" oninput="recalc()"/></div>
+      <div class="oh-row"><label>Доставка пакетів, ₴</label><input type="number" id="oh-bags-del300" placeholder="0" min="0" oninput="recalc()"/></div>
+      <div class="oh-row"><label>Вартість наліпок, ₴</label><input type="number" id="oh-stk300" placeholder="0" min="0" oninput="recalc()"/></div>
+      <div class="oh-row"><label>Доставка наліпок, ₴</label><input type="number" id="oh-stk-del300" placeholder="0" min="0" oninput="recalc()"/></div>
+    </div>
+    <div class="oh-block logistics">
+      <div class="oh-block-title">🚚 Логістика (на кг)</div>
+      <div class="oh-row"><label>Нова пошта, ₴</label><input type="number" id="oh-nova" placeholder="0" min="0" oninput="recalc()"/></div>
+      <div class="oh-row"><label>Розвантаження, ₴</label><input type="number" id="oh-unload" placeholder="0" min="0" oninput="recalc()"/></div>
+      <div class="oh-row"><label>Інше, ₴</label><input type="number" id="oh-other" placeholder="0" min="0" oninput="recalc()"/></div>
+    </div>
+  </div>
+  <div class="info-bar orange hidden" id="oh-info">
+    <div class="ib-item"><label>Усього накладних</label><div class="val" id="oh-total">—</div></div>
+    <div class="ib-item"><label>На пачку 1 кг</label><div class="val" id="oh-per1">—</div></div>
+    <div class="ib-item"><label>На пачку 300 г</label><div class="val" id="oh-per300">—</div></div>
+    <div class="ib-item"><label>Логістика / кг</label><div class="val" id="oh-logkg">—</div></div>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="recalc()">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Розрахувати
+    </button>
+    <button class="btn btn-ghost" onclick="clearDelivery()">Очистити</button>
+  </div>
+</div>
+
+<!-- RESULTS -->
+<div id="results-section" class="hidden">
+  <div class="card">
+    <div class="card-head">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      <h2>Результати розрахунку</h2>
+      <span id="res-badge" class="badge badge-green ml-auto"></span>
+    </div>
+    <div class="sum-grid">
+      <div class="sum-card"><label>Одиниць у поставці</label><div class="val" id="r-qty">—</div></div>
+      <div class="sum-card"><label>Сума закупки</label><div class="val" id="r-purchase">—</div></div>
+      <div class="sum-card"><label>Накладні витрати</label><div class="val" id="r-overhead">—</div></div>
+      <div class="sum-card green"><label>Сер. собів. поставки</label><div class="val" id="r-new-avg">—</div></div>
+      <div class="sum-card blue"><label>Нова сер. по складу</label><div class="val" id="r-wh-avg">—</div></div>
+    </div>
+    <hr class="div"/>
+    <div style="overflow-x:auto">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th>Позиція</th><th>Фас.</th>
+            <th style="text-align:right">Склад до</th>
+            <th style="text-align:right">Нова к-сть</th>
+            <th style="text-align:right">Пакув./пачку</th>
+            <th style="text-align:right">Лог./кг</th>
+            <th style="text-align:right">Собів. поставки, ₴/кг</th>
+            <th style="text-align:right">Склад після</th>
+            <th style="text-align:right;color:var(--accent)">Нова сер. собів., ₴/кг</th>
+          </tr>
+        </thead>
+        <tbody id="results-body"></tbody>
+      </table>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-success" id="apply-btn" onclick="applyDelivery()">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        Прийняти поставку на склад
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- SALES -->
+<div class="card">
+  <div class="card-head">
+    <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+    <h2>Продажі / Списання</h2>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:24px">#</th><th>Позиція</th><th style="width:70px">Фас.</th>
+        <th style="width:110px;text-align:right">Є на складі</th>
+        <th style="width:110px;text-align:right">Продано, шт</th>
+        <th style="width:130px;text-align:right">Собів. списання, ₴</th>
+      </tr>
+    </thead>
+    <tbody id="sales-body"></tbody>
+    <tfoot>
+      <tr>
+        <td colspan="3" style="padding-left:12px">Разом</td>
+        <td id="s-ft-stock" style="text-align:right"></td>
+        <td id="s-ft-sold"  style="text-align:right;color:var(--orange)"></td>
+        <td id="s-ft-cogs"  style="text-align:right;color:var(--accent)"></td>
+      </tr>
+    </tfoot>
+  </table>
+  <div class="btn-row" style="align-items:flex-end">
+    <div style="display:flex;flex-direction:column;gap:3px">
+      <label style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em">Період з</label>
+      <input type="date" id="sales-date-from" style="padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:#f8fafc;color:var(--text);width:150px" oninput="updateSalesDays()"/>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:3px">
+      <label style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em">по</label>
+      <input type="date" id="sales-date-to" style="padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:#f8fafc;color:var(--text);width:150px" oninput="updateSalesDays()"/>
+    </div>
+    <div id="sales-days-info" style="font-size:12px;color:var(--muted);padding-bottom:8px"></div>
+    <button class="btn btn-primary" id="apply-sales-btn" style="background:var(--orange)" onclick="applySales()">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+      Зарахувати продажі
+    </button>
+    <button class="btn btn-ghost" onclick="clearSales()">Очистити</button>
+  </div>
+</div>
+
+<!-- JOURNAL -->
+<div class="card">
+  <div class="card-head">
+    <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    <h2>Журнал операцій</h2>
+    <span id="journal-badge" class="badge badge-gray ml-auto"></span>
+  </div>
+  <div id="journal-body"></div>
+</div>
+
+<script>
+// ── API CLIENT ────────────────────────────────────────────────────────────────
+const api = {
+  get:   path       => fetch(path).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }),
+  post:  (path, d)  => fetch(path, { method:'POST',   headers:{'Content-Type':'application/json'}, body:JSON.stringify(d) }).then(r => r.json()),
+  patch: (path, d)  => fetch(path, { method:'PATCH',  headers:{'Content-Type':'application/json'}, body:JSON.stringify(d) }).then(r => r.json()),
+  del:   path       => fetch(path, { method:'DELETE' }).then(r => r.json()),
+};
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let items   = [];
+let journal = [];
+
+// ── UTILS ─────────────────────────────────────────────────────────────────────
+const nv  = id => parseFloat(document.getElementById(id)?.value) || 0;
+const dq  = i  => parseFloat(document.getElementById(`dq${i}`)?.value) || 0;
+const dp  = i  => parseFloat(document.getElementById(`dp${i}`)?.value) || 0;
+const sq  = i  => parseFloat(document.getElementById(`sq${i}`)?.value) || 0;
+const fmt = n  => (n || n === 0) ? n.toLocaleString('uk-UA', { minimumFractionDigits:2, maximumFractionDigits:2 }) : '—';
+const esc = s  => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const psLabel = ps => ps === 0.3 ? '300 г' : '1 кг';
+const plural  = (n,a,b,c) => { const m=n%100; if(m>=11&&m<=14)return c; const r=n%10; if(r===1)return a; if(r>=2&&r<=4)return b; return c; };
+
+document.getElementById('today').textContent = new Date().toLocaleDateString('uk-UA',{day:'2-digit',month:'long',year:'numeric'});
+const _today = new Date();
+const _twoWeeksAgo = new Date(_today); _twoWeeksAgo.setDate(_today.getDate() - 13);
+document.getElementById('sales-date-to').value   = _today.toISOString().slice(0,10);
+document.getElementById('sales-date-from').value = _twoWeeksAgo.toISOString().slice(0,10);
+updateSalesDays();
+
+function updateSalesDays() {
+  const from = document.getElementById('sales-date-from').value;
+  const to   = document.getElementById('sales-date-to').value;
+  const el   = document.getElementById('sales-days-info');
+  if (!from || !to) { el.textContent = ''; return; }
+  const days = Math.round((new Date(to) - new Date(from)) / 86400000) + 1;
+  el.textContent = days > 0 ? `${days} ${plural(days,'день','дні','днів')}` : '⚠ невірний діапазон';
+  el.style.color = days > 0 ? 'var(--muted)' : '#dc2626';
+}
+
+// ── SYNC INDICATOR ────────────────────────────────────────────────────────────
+function syncStatus(state, msg = '') {
+  const el = document.getElementById('sync-indicator');
+  el.className = state;
+  el.textContent = { saving:'⏳ збереження...', saved:'✓ збережено', error:'⚠ помилка збереження', '':'' }[state] || msg;
+}
+
+// ── LOAD ALL FROM SERVER ──────────────────────────────────────────────────────
+async function loadAll() {
+  try {
+    [items, journal] = await Promise.all([api.get('/api/stock'), api.get('/api/journal')]);
+    renderAll();
+  } catch (e) {
+    syncStatus('error');
+    console.error('Помилка завантаження:', e);
+  }
+}
+
+function renderAll() {
+  renderStock(); renderDelivery(); renderSales(); renderJournal();
+}
+
+// ── FIELD UPDATES (debounced PATCH) ──────────────────────────────────────────
+let _patchTimers = {};
+function updateItemField(i, field, rawValue) {
+  const num = ['qty','avgCost','ps'];
+  items[i][field] = num.includes(field) ? (parseFloat(rawValue) || 0) : rawValue;
+  if (field === 'name')              renderDelivery();
+  else if (field === 'qty' || field === 'avgCost') renderStock();
+  else if (field === 'ps')           { renderStock(); renderDelivery(); renderSales(); }
+
+  syncStatus('saving');
+  clearTimeout(_patchTimers[i]);
+  _patchTimers[i] = setTimeout(async () => {
+    try {
+      await api.patch(`/api/stock/${items[i].id}`, { [field]: items[i][field] });
+      syncStatus('saved');
+      setTimeout(() => syncStatus(''), 2000);
+    } catch { syncStatus('error'); }
+  }, 600);
+}
+
+// ── ADD / DELETE ITEM ─────────────────────────────────────────────────────────
+async function addItem() {
+  const cat = items[items.length - 1]?.cat || 'малі породи';
+  try {
+    const res = await api.post('/api/stock', { name:'Нова позиція', qty:0, avgCost:0, ps:1, cat });
+    items.push({ id: res.id, name:'Нова позиція', qty:0, avgCost:0, ps:1, cat });
+    renderAll();
+  } catch { syncStatus('error'); }
+}
+
+async function deleteItem(i) {
+  if (items.length <= 1) return;
+  if (!confirm(`Видалити «${items[i].name}»?`)) return;
+  try {
+    await api.del(`/api/stock/${items[i].id}`);
+    items.splice(i, 1);
+    renderStock(); renderDelivery(); renderSales();
+    document.getElementById('results-section').classList.add('hidden');
+  } catch { syncStatus('error'); }
+}
+
+// ── COMPUTE OVERHEAD ──────────────────────────────────────────────────────────
+function computeOverhead() {
+  let qty1 = 0, qty300 = 0;
+  items.forEach((item, i) => { if (item.ps === 0.3) qty300 += dq(i); else qty1 += dq(i); });
+  const totalKg  = qty1 * 1 + qty300 * 0.3;
+  const pack1    = nv('oh-bags1') + nv('oh-bags-del1') + nv('oh-stk1') + nv('oh-stk-del1');
+  const pack300  = nv('oh-bags300') + nv('oh-bags-del300') + nv('oh-stk300') + nv('oh-stk-del300');
+  const logistics = nv('oh-nova') + nv('oh-unload') + nv('oh-other');
+  return {
+    qty1, qty300, totalKg, pack1, pack300, logistics,
+    oh1PerUnit:   qty1    > 0 ? pack1    / qty1    : 0,
+    oh300PerUnit: qty300  > 0 ? pack300  / qty300  : 0,
+    logPerKg:     totalKg > 0 ? logistics / totalKg : 0,
+    total: pack1 + pack300 + logistics,
+  };
+}
+
+// ── RENDER STOCK ──────────────────────────────────────────────────────────────
+function renderStock() {
+  const tbody = document.getElementById('stock-body');
+  tbody.innerHTML = '';
+  let tQty = 0, tSum = 0;
+  items.forEach((item, i) => {
+    if (i === 0 || item.cat !== items[i-1].cat) {
+      const tr = document.createElement('tr'); tr.className = 'cat-row';
+      tr.innerHTML = `<td colspan="7">${item.cat || 'Інші'}</td>`;
+      tbody.appendChild(tr);
+    }
+    const sum = item.qty * item.avgCost * item.ps;
+    tQty += item.qty; tSum += sum;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="color:var(--muted);font-size:11px">${i+1}</td>
+      <td><input class="ghost" type="text" value="${esc(item.name)}" style="min-width:150px"
+        onchange="updateItemField(${i},'name',this.value)"/></td>
+      <td><select onchange="updateItemField(${i},'ps',this.value)">
+        <option value="1" ${item.ps===1?'selected':''}>1 кг</option>
+        <option value="0.3" ${item.ps===0.3?'selected':''}>300 г</option>
+      </select></td>
+      <td style="text-align:right"><input type="number" value="${item.qty||''}" placeholder="0" min="0" step="1"
+        style="width:80px;text-align:right" onchange="updateItemField(${i},'qty',this.value);renderStock()"/></td>
+      <td style="text-align:right"><input type="number" value="${item.avgCost||''}" placeholder="0.00" min="0" step="0.01"
+        style="width:120px;text-align:right" onchange="updateItemField(${i},'avgCost',this.value);renderStock()"/></td>
+      <td style="text-align:right;color:var(--muted)">${sum > 0 ? fmt(sum)+' ₴' : '—'}</td>
+      <td style="text-align:center;width:36px">
+        <button onclick="deleteItem(${i})" title="Видалити"
+          style="background:none;border:none;cursor:pointer;color:#cbd5e1;font-size:15px;padding:2px 4px;border-radius:4px"
+          onmouseover="this.style.color='#dc2626'" onmouseout="this.style.color='#cbd5e1'">✕</button>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+  document.getElementById('ft-qty').textContent = tQty + ' шт';
+  document.getElementById('ft-sum').textContent = fmt(tSum) + ' ₴';
+  document.getElementById('stock-badge').textContent = tQty + ' шт на складі';
+}
+
+// ── RENDER DELIVERY ───────────────────────────────────────────────────────────
+function renderDelivery() {
+  const tbody = document.getElementById('delivery-body');
+  tbody.innerHTML = '';
+  items.forEach((item, i) => {
+    if (i === 0 || item.cat !== items[i-1].cat) {
+      const tr = document.createElement('tr'); tr.className = 'cat-row';
+      tr.innerHTML = `<td colspan="6">${item.cat || 'Інші'}</td>`;
+      tbody.appendChild(tr);
+    }
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="color:var(--muted);font-size:11px">${i+1}</td>
+      <td style="color:var(--muted)">${esc(item.name)}</td>
+      <td style="color:var(--muted);font-size:12px">${psLabel(item.ps)}</td>
+      <td style="text-align:right"><input type="number" id="dq${i}" placeholder="—" min="0" step="1"
+        style="width:80px;text-align:right" oninput="onDeliveryInput(${i})"/></td>
+      <td style="text-align:right"><input type="number" id="dp${i}" placeholder="—" min="0" step="0.01"
+        style="width:120px;text-align:right" oninput="onDeliveryInput(${i})"/></td>
+      <td id="ds${i}" style="text-align:right;color:var(--muted)">—</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function onDeliveryInput(i) {
+  const q = dq(i), p = dp(i);
+  const el = document.getElementById(`ds${i}`);
+  if (el) el.textContent = (q && p) ? fmt(q * p * items[i].ps) + ' ₴' : '—';
+  let tQty = 0, tSum = 0;
+  items.forEach((item, j) => { tQty += dq(j); tSum += dq(j) * dp(j) * item.ps; });
+  document.getElementById('d-ft-qty').textContent = tQty ? tQty + ' шт' : '—';
+  document.getElementById('d-ft-sum').textContent = tSum ? fmt(tSum) + ' ₴' : '—';
+  recalc();
+}
+
+// ── RECALCULATE ───────────────────────────────────────────────────────────────
+function recalc() {
+  const oh = computeOverhead();
+  const hasDelivery = items.some((_, i) => dq(i) > 0);
+
+  const infoEl = document.getElementById('oh-info');
+  if (oh.total > 0 || hasDelivery) {
+    infoEl.classList.remove('hidden');
+    document.getElementById('oh-total').textContent  = fmt(oh.total) + ' ₴';
+    document.getElementById('oh-per1').textContent   = oh.qty1   ? fmt(oh.oh1PerUnit) + ' ₴'   : '—';
+    document.getElementById('oh-per300').textContent = oh.qty300 ? fmt(oh.oh300PerUnit) + ' ₴' : '—';
+    document.getElementById('oh-logkg').textContent  = oh.totalKg ? fmt(oh.logPerKg) + ' ₴'   : '—';
+  } else {
+    infoEl.classList.add('hidden');
+  }
+
+  if (!hasDelivery) { document.getElementById('results-section').classList.add('hidden'); return; }
+  document.getElementById('results-section').classList.remove('hidden');
+
+  const tbody = document.getElementById('results-body');
+  tbody.innerHTML = '';
+
+  let rQty = 0, rNewW = 0, rNewKg = 0, rAfterW = 0, rAfterKg = 0, rPurchase = 0;
+
+  items.forEach((item, i) => {
+    if (i === 0 || item.cat !== items[i-1].cat) {
+      const tr = document.createElement('tr'); tr.className = 'cat-row';
+      tr.innerHTML = `<td colspan="10">${item.cat || 'Інші'}</td>`;
+      tbody.appendChild(tr);
+    }
+    const q = dq(i), p = dp(i);
+    const ohPerUnit = item.ps === 0.3 ? oh.oh300PerUnit : oh.oh1PerUnit;
+    // COGS/кг = закуп/кг + накладні/пачку ÷ кг/пачку + логістика/кг
+    const newCOGS = q > 0 ? p + ohPerUnit / item.ps + oh.logPerKg : 0;
+    const afterQty = item.qty + q;
+    // WAC: обидва в ₴/кг, ps скорочується
+    const newAvg = afterQty > 0 ? (item.qty * item.avgCost + q * newCOGS) / afterQty : 0;
+
+    if (q > 0) {
+      const qKg = q * item.ps;
+      rQty     += q;
+      rNewW    += newCOGS * qKg;
+      rNewKg   += qKg;
+      rAfterW  += newAvg * afterQty * item.ps;
+      rAfterKg += afterQty * item.ps;
+      rPurchase += q * p * item.ps;
+    }
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="color:var(--muted);font-size:11px">${i+1}</td>
+      <td>${esc(item.name)}</td>
+      <td style="color:var(--muted);font-size:12px">${psLabel(item.ps)}</td>
+      <td style="text-align:right" class="res-dim">${item.qty ? item.qty+' шт' : '—'}</td>
+      <td style="text-align:right">${q ? '<strong>'+q+' шт</strong>' : '<span class="res-dim">—</span>'}</td>
+      <td style="text-align:right" class="res-dim">${q ? fmt(ohPerUnit)+' ₴' : '—'}</td>
+      <td style="text-align:right" class="res-dim">${q ? fmt(oh.logPerKg)+' ₴' : '—'}</td>
+      <td style="text-align:right" class="${q ? 'res-new' : ''}">${q ? fmt(newCOGS)+' ₴' : '—'}</td>
+      <td style="text-align:right">${afterQty ? afterQty+' шт' : '—'}</td>
+      <td style="text-align:right" class="${q ? 'res-avg' : ''}">${q ? fmt(newAvg)+' ₴' : (item.avgCost ? fmt(item.avgCost)+' ₴' : '—')}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  const avgNew = rNewKg   > 0 ? rNewW  / rNewKg   : 0;
+  const avgWh  = rAfterKg > 0 ? rAfterW / rAfterKg : 0;
+
+  document.getElementById('r-qty').textContent      = rQty + ' шт';
+  document.getElementById('r-purchase').textContent = fmt(rPurchase) + ' ₴';
+  document.getElementById('r-overhead').textContent = fmt(oh.total) + ' ₴';
+  document.getElementById('r-new-avg').textContent  = fmt(avgNew) + ' ₴/кг';
+  document.getElementById('r-wh-avg').textContent   = fmt(avgWh)  + ' ₴/кг';
+  document.getElementById('res-badge').textContent  = rQty + ' шт у поставці';
+}
+
+// ── APPLY DELIVERY ────────────────────────────────────────────────────────────
+async function applyDelivery() {
+  const btn = document.getElementById('apply-btn');
+  btn.disabled = true;
+  const oh = computeOverhead();
+  const stockBefore = JSON.parse(JSON.stringify(items));
+  const deliveryItems = [];
+  const stockAfter   = [];
+
+  items.forEach((item, i) => {
+    const q = dq(i), p = dp(i);
+    if (!q) return;
+    const ohPerUnit = item.ps === 0.3 ? oh.oh300PerUnit : oh.oh1PerUnit;
+    const newCOGS   = p + ohPerUnit / item.ps + oh.logPerKg;
+    const afterQty  = item.qty + q;
+    const newAvg    = afterQty > 0 ? (item.qty * item.avgCost + q * newCOGS) / afterQty : 0;
+    deliveryItems.push({ name:item.name, ps:item.ps, qty:q, price:p,
+                         ohPerUnit, logPerKg:oh.logPerKg, newCOGS, newAvg });
+    item.avgCost = Math.round(newAvg * 10000) / 10000;
+    item.qty     = afterQty;
+    stockAfter.push({ id:item.id, qty:item.qty, avgCost:item.avgCost });
+  });
+
+  const entry = {
+    id: Date.now(), type: 'delivery',
+    date: new Date().toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit',year:'numeric'}),
+    time: new Date().toLocaleTimeString('uk-UA',{hour:'2-digit',minute:'2-digit'}),
+    stockBefore, stockAfter,
+    items: deliveryItems,
+    overhead: {
+      bags1:nv('oh-bags1'), bagsDel1:nv('oh-bags-del1'), stk1:nv('oh-stk1'), stkDel1:nv('oh-stk-del1'),
+      bags300:nv('oh-bags300'), bagsDel300:nv('oh-bags-del300'), stk300:nv('oh-stk300'), stkDel300:nv('oh-stk-del300'),
+      nova:nv('oh-nova'), unload:nv('oh-unload'), other:nv('oh-other'),
+    },
+    oh1PerUnit:oh.oh1PerUnit, oh300PerUnit:oh.oh300PerUnit, logPerKg:oh.logPerKg, ohTotal:oh.total,
+  };
+
+  try {
+    await api.post('/api/journal', entry);
+    journal.unshift(entry);
+    clearDelivery(false);
+    renderAll();
+    document.getElementById('results-section').classList.add('hidden');
+    const orig = btn.innerHTML;
+    btn.innerHTML = '✓ Прийнято!'; btn.style.background = '#166534';
+    setTimeout(() => { btn.innerHTML = orig; btn.style.background = ''; btn.disabled = false; }, 2500);
+  } catch {
+    syncStatus('error');
+    btn.disabled = false;
+  }
+}
+
+// ── RENDER SALES ──────────────────────────────────────────────────────────────
+function renderSales() {
+  const tbody = document.getElementById('sales-body');
+  tbody.innerHTML = '';
+  let tStock = 0;
+  items.forEach((item, i) => {
+    if (i === 0 || item.cat !== items[i-1].cat) {
+      const tr = document.createElement('tr'); tr.className = 'cat-row';
+      tr.innerHTML = `<td colspan="6">${item.cat || 'Інші'}</td>`;
+      tbody.appendChild(tr);
+    }
+    tStock += item.qty;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="color:var(--muted);font-size:11px">${i+1}</td>
+      <td>${esc(item.name)}</td>
+      <td style="color:var(--muted);font-size:12px">${psLabel(item.ps)}</td>
+      <td style="text-align:right;color:var(--muted)">${item.qty} шт</td>
+      <td style="text-align:right"><input type="number" id="sq${i}" placeholder="—" min="0"
+        max="${item.qty}" step="1" style="width:90px;text-align:right" oninput="onSalesInput()"/></td>
+      <td id="sc${i}" style="text-align:right;color:var(--muted)">—</td>`;
+    tbody.appendChild(tr);
+  });
+  document.getElementById('s-ft-stock').textContent = tStock + ' шт';
+  document.getElementById('s-ft-sold').textContent  = '—';
+  document.getElementById('s-ft-cogs').textContent  = '—';
+}
+
+function onSalesInput() {
+  let tSold = 0, tCogs = 0;
+  items.forEach((item, i) => {
+    const sold = sq(i);
+    const cogs = sold * item.avgCost * item.ps;
+    const el = document.getElementById(`sc${i}`);
+    if (el) el.textContent = sold ? fmt(cogs) + ' ₴' : '—';
+    tSold += sold; tCogs += cogs;
+  });
+  document.getElementById('s-ft-sold').textContent = tSold ? tSold + ' шт' : '—';
+  document.getElementById('s-ft-cogs').textContent = tCogs ? fmt(tCogs) + ' ₴' : '—';
+}
+
+async function applySales() {
+  const btn = document.getElementById('apply-sales-btn');
+  if (!items.some((_, i) => sq(i) > 0)) return;
+  const overItem = items.find((item, i) => sq(i) > item.qty);
+  if (overItem) { alert(`Кількість продажів «${overItem.name}» перевищує залишок.`); return; }
+
+  btn.disabled = true;
+  const stockBefore = JSON.parse(JSON.stringify(items));
+  const saleItems = [];
+  const stockAfter = [];
+
+  items.forEach((item, i) => {
+    const sold = sq(i);
+    if (!sold) return;
+    saleItems.push({ name:item.name, ps:item.ps, qty:sold,
+                     avgCost:item.avgCost, cogsTotal: sold * item.avgCost * item.ps });
+    item.qty -= sold;
+    stockAfter.push({ id:item.id, qty:item.qty, avgCost:item.avgCost });
+  });
+
+  const fromIso = document.getElementById('sales-date-from').value || new Date().toISOString().slice(0,10);
+  const toIso   = document.getElementById('sales-date-to').value   || new Date().toISOString().slice(0,10);
+  const days    = Math.round((new Date(toIso) - new Date(fromIso)) / 86400000) + 1;
+  const fmtD    = iso => new Date(iso).toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const entry = {
+    id: Date.now(), type: 'sale',
+    date: fmtD(fromIso) + (fromIso !== toIso ? ' — ' + fmtD(toIso) : ''),
+    periodFrom: fromIso,
+    periodTo:   toIso,
+    periodDays: days,
+    stockBefore, stockAfter, items: saleItems,
+  };
+
+  try {
+    await api.post('/api/journal', entry);
+    journal.unshift(entry);
+    clearSales(false);
+    renderAll();
+    const orig = btn.innerHTML;
+    btn.innerHTML = '✓ Зараховано!';
+    setTimeout(() => { btn.innerHTML = orig; btn.disabled = false; }, 2200);
+  } catch {
+    syncStatus('error');
+    btn.disabled = false;
+  }
+}
+
+function clearSales(confirm_ = true) {
+  if (confirm_ && items.some((_,i) => sq(i) > 0) && !confirm('Очистити поля продажів?')) return;
+  items.forEach((_,i) => {
+    const el = document.getElementById(`sq${i}`); if (el) el.value = '';
+    const sc = document.getElementById(`sc${i}`); if (sc) sc.textContent = '—';
+  });
+  document.getElementById('s-ft-sold').textContent = '—';
+  document.getElementById('s-ft-cogs').textContent = '—';
+}
+
+// ── UNDO ──────────────────────────────────────────────────────────────────────
+async function undoLast() {
+  if (!journal.length) return;
+  const entry = journal[0];
+  const label = entry.type === 'sale' ? 'продаж' : 'поставку';
+  if (!confirm(`Скасувати останній ${label} від ${entry.date}? Склад повернеться до попереднього стану.`)) return;
+  try {
+    await api.del(`/api/journal/${entry.id}`);
+    // restore local state from the server snapshot
+    entry.stockBefore.forEach(saved => {
+      const item = items.find(x => x.id === saved.id);
+      if (item) { item.qty = saved.qty; item.avgCost = saved.avgCost; }
+    });
+    journal.shift();
+    renderAll();
+  } catch { syncStatus('error'); }
+}
+
+// ── RENDER JOURNAL ────────────────────────────────────────────────────────────
+function renderJournal() {
+  const container = document.getElementById('journal-body');
+  document.getElementById('journal-badge').textContent =
+    journal.length + ' ' + plural(journal.length, 'запис', 'записи', 'записів');
+
+  if (!journal.length) {
+    container.innerHTML = '<div class="journal-empty">Операцій ще не було.</div>';
+    return;
+  }
+  container.innerHTML = '';
+
+  journal.forEach((entry, idx) => {
+    const isSale   = entry.type === 'sale';
+    const totalQty = entry.items.reduce((s,x) => s + x.qty, 0);
+    const totalCost = isSale
+      ? entry.items.reduce((s,x) => s + x.cogsTotal, 0)
+      : entry.items.reduce((s,x) => s + x.qty * x.price * x.ps, 0);
+    const names = entry.items.map(x => x.name.split(' ').slice(0,2).join(' ')).join(', ');
+
+    const bodyHtml = isSale
+      ? `${entry.periodDays ? `<div style="padding:6px 12px 0;font-size:12px;color:var(--muted)">Період: <strong style="color:var(--text)">${entry.periodDays} ${plural(entry.periodDays,'день','дні','днів')}</strong></div>` : ''}
+         <table class="journal-mini-table">
+           <thead><tr><th>Позиція</th><th>Фас.</th><th style="text-align:right">Продано</th><th style="text-align:right">Сер./день</th><th style="text-align:right">Собів., ₴/кг</th><th style="text-align:right">Списано, ₴</th></tr></thead>
+           <tbody>${entry.items.map(x => `<tr>
+             <td>${esc(x.name)}</td><td>${psLabel(x.ps)}</td>
+             <td style="text-align:right">${x.qty} шт</td>
+             <td style="text-align:right;color:var(--muted)">${entry.periodDays > 1 ? fmt(x.qty / entry.periodDays) + ' шт' : '—'}</td>
+             <td style="text-align:right">${fmt(x.avgCost)} ₴</td>
+             <td style="text-align:right;color:var(--orange);font-weight:600">${fmt(x.cogsTotal)} ₴</td>
+           </tr>`).join('')}</tbody>
+         </table>`
+      : `<table class="journal-mini-table">
+           <thead><tr><th>Позиція</th><th>Фас.</th><th style="text-align:right">К-сть</th><th style="text-align:right">Ціна, ₴/кг</th><th style="text-align:right">Пакув./пачку</th><th style="text-align:right">Лог./кг</th><th style="text-align:right">Собів., ₴/кг</th><th style="text-align:right">Нова сер., ₴/кг</th></tr></thead>
+           <tbody>${entry.items.map(x => `<tr>
+             <td>${esc(x.name)}</td><td>${psLabel(x.ps)}</td>
+             <td style="text-align:right">${x.qty} шт</td>
+             <td style="text-align:right">${fmt(x.price)} ₴</td>
+             <td style="text-align:right">${fmt(x.ohPerUnit)} ₴</td>
+             <td style="text-align:right">${fmt(x.logPerKg)} ₴</td>
+             <td style="text-align:right;color:var(--green);font-weight:600">${fmt(x.newCOGS)} ₴</td>
+             <td style="text-align:right;color:var(--accent);font-weight:700">${fmt(x.newAvg)} ₴</td>
+           </tr>`).join('')}</tbody>
+         </table>
+         <div class="journal-oh">
+           <span>Пакети 1 кг: <strong>${fmt(entry.overhead.bags1 + entry.overhead.bagsDel1)} ₴</strong></span>
+           <span>Наліпки 1 кг: <strong>${fmt(entry.overhead.stk1 + entry.overhead.stkDel1)} ₴</strong></span>
+           <span>Пакети 300 г: <strong>${fmt(entry.overhead.bags300 + entry.overhead.bagsDel300)} ₴</strong></span>
+           <span>Наліпки 300 г: <strong>${fmt(entry.overhead.stk300 + entry.overhead.stkDel300)} ₴</strong></span>
+           <span>Нова пошта: <strong>${fmt(entry.overhead.nova)} ₴</strong></span>
+           <span>Розвантаження: <strong>${fmt(entry.overhead.unload)} ₴</strong></span>
+           ${entry.overhead.other ? `<span>Інше: <strong>${fmt(entry.overhead.other)} ₴</strong></span>` : ''}
+           <span>Накладні разом: <strong>${fmt(entry.ohTotal)} ₴</strong></span>
+         </div>`;
+
+    const div = document.createElement('div');
+    div.className = 'journal-entry';
+    div.innerHTML = `
+      <div class="journal-entry-head" onclick="toggleJournal(this)">
+        <span class="date">${isSale ? '🛒' : '📦'} ${isSale ? 'Продаж' : 'Поставка'} · ${entry.date}${entry.time ? ' о ' + entry.time : ''}</span>
+        <span class="summary">&nbsp;·&nbsp; ${totalQty} шт &nbsp;·&nbsp; ${fmt(isSale ? totalCost : totalCost + entry.ohTotal)} ₴ &nbsp;·&nbsp; ${names}</span>
+        <span class="badge ${isSale ? 'badge-yellow' : 'badge-green'} ml-auto" style="flex-shrink:0">${idx === 0 ? 'остання' : ''}</span>
+        <svg style="flex-shrink:0;margin-left:6px;transition:transform .2s" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="journal-entry-body">
+        ${bodyHtml}
+        ${idx === 0 ? `<div style="margin-top:10px">
+          <button class="btn btn-danger" onclick="undoLast()">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 00-4-4H4"/></svg>
+            Скасувати цей запис
+          </button></div>` : ''}
+      </div>`;
+    container.appendChild(div);
+  });
+}
+
+function toggleJournal(head) {
+  const body  = head.nextElementSibling;
+  const arrow = head.querySelector('svg:last-child');
+  body.classList.toggle('open');
+  arrow.style.transform = body.classList.contains('open') ? 'rotate(180deg)' : '';
+}
+
+// ── CLEAR DELIVERY ────────────────────────────────────────────────────────────
+function clearDelivery(confirm_ = true) {
+  const hasData = items.some((_, i) => dq(i) > 0 || dp(i) > 0);
+  if (confirm_ && hasData && !confirm('Очистити всі поля поставки?')) return;
+  items.forEach((_, i) => {
+    const q = document.getElementById(`dq${i}`); if (q) q.value = '';
+    const p = document.getElementById(`dp${i}`); if (p) p.value = '';
+    const s = document.getElementById(`ds${i}`); if (s) s.textContent = '—';
+  });
+  ['oh-bags1','oh-bags-del1','oh-stk1','oh-stk-del1',
+   'oh-bags300','oh-bags-del300','oh-stk300','oh-stk-del300',
+   'oh-nova','oh-unload','oh-other'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('oh-info').classList.add('hidden');
+  document.getElementById('results-section').classList.add('hidden');
+  document.getElementById('d-ft-qty').textContent = '—';
+  document.getElementById('d-ft-sum').textContent = '—';
+}
+
+// ── POLL FOR CHANGES FROM OTHER USERS (every 30s) ─────────────────────────────
+setInterval(async () => {
+  // only refresh if no delivery/sales form is being filled
+  const anyInput = items.some((_, i) => dq(i) > 0 || sq(i) > 0);
+  if (anyInput) return;
+  try {
+    const fresh = await api.get('/api/stock');
+    if (JSON.stringify(fresh) !== JSON.stringify(items)) {
+      items = fresh;
+      renderStock(); renderSales();
+    }
+  } catch { /* silent */ }
+}, 30000);
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+loadAll();
+</script>
+</body>
+</html>

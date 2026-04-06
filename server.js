@@ -3,6 +3,13 @@ const Database = require('better-sqlite3');
 const path = require('path');
 
 const app = express();
+const basicAuth = require('express-basic-auth');
+
+app.use(basicAuth({
+    users: { [process.env.AUTH_USER]: process.env.AUTH_PASSWORD },
+    challenge: true
+}));
+
 const db = new Database(path.join(__dirname, 'data', 'feedstock.db'));
 // test volume persistence
 // another test volume persistence

@@ -424,11 +424,6 @@ function renderStock() {
   tbody.innerHTML = '';
   let tQty = 0, tSum = 0;
   items.forEach((item, i) => {
-    if (i === 0 || item.cat !== items[i-1].cat) {
-      const tr = document.createElement('tr'); tr.className = 'cat-row';
-      tr.innerHTML = `<td colspan="7">${item.cat || 'Інші'}</td>`;
-      tbody.appendChild(tr);
-    }
     const sum = item.qty * item.avgCost * item.ps;
     tQty += item.qty; tSum += sum;
     const tr = document.createElement('tr');
@@ -462,11 +457,6 @@ function renderDelivery() {
   const tbody = document.getElementById('delivery-body');
   tbody.innerHTML = '';
   items.forEach((item, i) => {
-    if (i === 0 || item.cat !== items[i-1].cat) {
-      const tr = document.createElement('tr'); tr.className = 'cat-row';
-      tr.innerHTML = `<td colspan="6">${item.cat || 'Інші'}</td>`;
-      tbody.appendChild(tr);
-    }
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td style="color:var(--muted);font-size:11px">${i+1}</td>
@@ -517,11 +507,6 @@ function recalc() {
   let rQty = 0, rNewW = 0, rNewKg = 0, rAfterW = 0, rAfterKg = 0, rPurchase = 0;
 
   items.forEach((item, i) => {
-    if (i === 0 || item.cat !== items[i-1].cat) {
-      const tr = document.createElement('tr'); tr.className = 'cat-row';
-      tr.innerHTML = `<td colspan="10">${item.cat || 'Інші'}</td>`;
-      tbody.appendChild(tr);
-    }
     const q = dq(i), p = dp(i);
     const ohPerUnit = item.ps === 0.3 ? oh.oh300PerUnit : oh.oh1PerUnit;
     // COGS/кг = закуп/кг + накладні/пачку ÷ кг/пачку + логістика/кг
@@ -624,11 +609,6 @@ function renderSales() {
   tbody.innerHTML = '';
   let tStock = 0;
   items.forEach((item, i) => {
-    if (i === 0 || item.cat !== items[i-1].cat) {
-      const tr = document.createElement('tr'); tr.className = 'cat-row';
-      tr.innerHTML = `<td colspan="6">${item.cat || 'Інші'}</td>`;
-      tbody.appendChild(tr);
-    }
     tStock += item.qty;
     const tr = document.createElement('tr');
     tr.innerHTML = `

@@ -1,6 +1,7 @@
 const express = require('express');
 const Database = require('better-sqlite3');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const basicAuth = require('express-basic-auth');
@@ -135,6 +136,21 @@ app.delete('/api/journal/:id', (req, res) => {
     db.prepare('DELETE FROM journal_entries WHERE id=?').run(req.params.id);
   })();
   res.json({ ok: true });
+});
+
+// ── TEMPORARY BACKUP ENDPOINT (remove after use) ────────────────────────────────
+// Downloads a consistent copy of the SQLite database. Protected by the global
+// Basic Auth above. Uses better-sqlite3's online backup so it is safe to run
+// while the app is live.
+app.get('/api/backup', async (req, res) => {
+  const tmp = path.join(__dirname, 'data', `_backup-${Date.now()}.db`);
+  try {
+    await db.backup(tmp);
+    res.download(tmp, 'feedstock-backup.db', () => fs.unlink(tmp, () => {}));
+  } catch (err) {
+    fs.unlink(tmp, () => {});
+    res.status(500).json({ error: String(err) });
+  }
 });
 
 // ── START ─────────────────────────────────────────────────────────────────────

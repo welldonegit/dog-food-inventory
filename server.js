@@ -153,6 +153,22 @@ app.get('/api/backup', async (req, res) => {
   }
 });
 
+// ── TEMPORARY MIGRATION ENDPOINT (remove after use) ─────────────────────────────
+// Fixes the 11.05.2026 15:29 delivery price (0 → 150.08) for «Лосось для великих»
+// and replays the weighted-average chain forward. Protected by global Basic Auth.
+//   GET /api/admin/fix-losos?mode=dry    → returns before→after plan, writes nothing
+//   GET /api/admin/fix-losos?mode=apply  → applies in a transaction (idempotent)
+const lososFix = require('./migrate-losos');
+app.get('/api/admin/fix-losos', (req, res) => {
+  try {
+    const apply = req.query.mode === 'apply';
+    const result = lososFix.run(db, { apply });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: String(err && err.stack || err) });
+  }
+});
+
 // ── START ─────────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

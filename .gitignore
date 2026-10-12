@@ -137,3 +137,13 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# ── Project-local (not for the repo) ────────────────────────────────────────────
+# macOS junk
+.DS_Store
+# Local DB snapshots / backups (прод-база живёт на томе Railway, в репо не нужна)
+*.db
+journal.json
+stock.json
+# Рабочие журналы сессий — держим локально, в репозиторий не коммитим
+WORKLOG-*.md

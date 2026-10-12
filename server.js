@@ -137,6 +137,49 @@ app.delete('/api/journal/:id', (req, res) => {
   res.json({ ok: true });
 });
 
+// ── TEMP: rename delivery date (08.10 relabel) ──────────────────────────────────
+// Finds the delivery journal entry dated 12.10.2026 о 19:41 and relabels it to
+// date=08.10.2026, time="". mode=dry (default) only reports; mode=apply writes.
+app.get('/api/fix-delivery-date', (req, res) => {
+  const mode = req.query.mode === 'apply' ? 'apply' : 'dry';
+  const FROM = { date: '12.10.2026', time: '19:41' };
+  const TO   = { date: '08.10.2026', time: '' };
+
+  const rows = db.prepare(
+    "SELECT id, type, entry_json FROM journal_entries WHERE type='delivery'"
+  ).all();
+
+  const matches = rows
+    .map(r => ({ id: r.id, entry: JSON.parse(r.entry_json) }))
+    .filter(x => x.entry.date === FROM.date && x.entry.time === FROM.time);
+
+  const summary = matches.map(m => ({
+    id: m.id,
+    before: { date: m.entry.date, time: m.entry.time },
+    after:  { date: TO.date, time: TO.time },
+  }));
+
+  if (mode === 'dry') {
+    return res.json({ mode, matched: matches.length, summary });
+  }
+
+  if (matches.length !== 1) {
+    return res.status(409).json({
+      mode, error: `expected exactly 1 match, got ${matches.length}`, summary,
+    });
+  }
+
+  db.transaction(() => {
+    const upd = db.prepare('UPDATE journal_entries SET entry_json=? WHERE id=?');
+    matches.forEach(m => {
+      const next = { ...m.entry, date: TO.date, time: TO.time };
+      upd.run(JSON.stringify(next), m.id);
+    });
+  })();
+
+  res.json({ mode, updated: matches.length, summary });
+});
+
 // ── START ─────────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

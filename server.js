@@ -1,6 +1,7 @@
 const express = require('express');
 const Database = require('better-sqlite3');
 const path = require('path');
+const os = require('os');
 
 const app = express();
 const basicAuth = require('express-basic-auth');
@@ -135,6 +136,13 @@ app.delete('/api/journal/:id', (req, res) => {
     db.prepare('DELETE FROM journal_entries WHERE id=?').run(req.params.id);
   })();
   res.json({ ok: true });
+});
+
+// ── TEMP: DB backup (remove after use) ──────────────────────────────────────────
+app.get('/api/backup', async (req, res) => {
+  const tmp = path.join(os.tmpdir(), 'feedstock-backup.db');
+  await db.backup(tmp);
+  res.download(tmp, 'feedstock-backup.db');
 });
 
 // ── START ─────────────────────────────────────────────────────────────────────
